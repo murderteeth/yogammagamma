@@ -13,7 +13,7 @@ export default function Tokens({
     const separator = Intl.NumberFormat().format(1.1).charAt(1)
     const [ whole, fraction ] = units.split(separator)
     return `${whole.padStart(padStart || 0, '0')}.${(fraction || '0'.repeat(accuracy || 2)).slice(0, accuracy || 2)}`
-  }, [amount, decimals, padStart])
+  }, [amount, decimals, accuracy, padStart])
 
   return <span className="font-mono">{formatted}</span>
 }
