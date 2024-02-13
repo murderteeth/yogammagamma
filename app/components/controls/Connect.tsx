@@ -2,7 +2,6 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { PiWalletBold } from 'react-icons/pi'
-import Image from 'next/image'
 import Button from './Button'
 
 export default function Connect({ className }: { className?: string }) {
@@ -39,8 +38,9 @@ export default function Connect({ className }: { className?: string }) {
             {(() => {
               if (!connected) {
                 return (
-                  <Button onClick={openConnectModal} type="button">
+                  <Button onClick={openConnectModal} type="button" className="flex items-center justify-between gap-4">
                     <PiWalletBold size={20} />
+                    <div>Connect wallet</div>
                   </Button>
                 );
               }
