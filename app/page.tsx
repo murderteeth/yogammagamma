@@ -3,7 +3,7 @@
 import Connect from './components/controls/Connect'
 import strategies from '../strategies.json'
 import { useAccount, useReadContracts, useSimulateContract, useWriteContract } from 'wagmi'
-import { formatUnits, parseAbi } from 'viem'
+import { parseAbi } from 'viem'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fEvmAddress } from '@/lib/format'
 import { MdOutlineCheck } from 'react-icons/md'
@@ -42,11 +42,6 @@ const contracts = strategies.map(strategy => [
   }
 ]).flat()
 
-function hasMoreThanDust(totalSupply: bigint, decimals: number) {
-  const units = parseFloat(formatUnits(totalSupply, decimals))
-  return units > 0.0001
-}
-
 function Page() {
   const multicall = useReadContracts({ contracts })
   const { isConnected } = useAccount()
@@ -65,8 +60,7 @@ function Page() {
         address: strategy as `0x${string}`,
         symbol: String(multicall.data?.[i * stride].result || ''),
         totalSupply,
-        decimals,
-        hasMoreThanDust: hasMoreThanDust(totalSupply, decimals)
+        decimals
       }
     })
   }, [multicall])
@@ -79,7 +73,7 @@ function Page() {
     const _proofs: `0x${string}`[][] = []
     try {
       for(const strategy of strategyDetails) {
-        if(!strategy.hasMoreThanDust) continue
+        if(strategy.totalSupply < 1n) continue
         const response = await fetch(`https://api.angle.money/v2/merkl?chainIds[]=${chain.id}&user=${strategy.address}`)
         const json = await response.json()
         const data = json[String(chain.id)].transactionData
@@ -141,11 +135,11 @@ function Page() {
         </thead>
         <tbody>
         {strategyDetails.map((strategy) => <tr key={strategy.address} className={`
-          ${strategy.hasMoreThanDust ? '' : 'text-slate-900'}`}>
+          ${(strategy.totalSupply > 0n) ? '' : 'text-slate-900'}`}>
           <td>{strategy.symbol}</td>
           <td><A href={`https://polygonscan.com/address/${strategy.address}`} target='_blank'>{fEvmAddress(strategy.address)}</A></td>
-          <td><Tokens amount={strategy.totalSupply} decimals={strategy.decimals} accuracy={4} padStart={3} /></td>
-          <td>{strategy.hasMoreThanDust ? <MdOutlineCheck /> : <></>}</td>
+          <td><Tokens amount={strategy.totalSupply} decimals={strategy.decimals} accuracy={16} padStart={3} /></td>
+          <td>{(strategy.totalSupply > 0n) ? <MdOutlineCheck /> : <></>}</td>
         </tr>)}
         </tbody>
       </table>

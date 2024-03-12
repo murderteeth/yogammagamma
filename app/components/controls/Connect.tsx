@@ -74,7 +74,8 @@ export default function Connect({ className }: { className?: string }) {
                           <Image
                             alt={chain.name ?? 'Chain icon'}
                             src={chain.iconUrl}
-                            style={{ width: 12, height: 12 }}
+                            width={12}
+                            height={12}
                           />
                         )}
                       </div>
