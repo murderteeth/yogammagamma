@@ -2,7 +2,7 @@
 
 import Connect from './components/controls/Connect'
 import strategies from '../strategies.json'
-import { useAccount, useReadContracts, useSimulateContract, useWriteContract } from 'wagmi'
+import { useAccount, useReadContracts, useSimulateContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import { parseAbi } from 'viem'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fEvmAddress } from '@/lib/format'
@@ -97,22 +97,33 @@ function Page() {
     }
   }, [setBusy, strategyDetails, setUsers, setTokens, setClaims, setProofs])
 
-  const simulateClaim = useSimulateContract({
+  const simulation = useSimulateContract({
     address: DISTRIBUTOR,
     abi: parseAbi(['function claim(address[] calldata users, address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs) external']),
     functionName: 'claim',
     args: [users, tokens, claims, proofs]
   })
 
-  const { writeContract, isPending, isSuccess } = useWriteContract()
+  const execute = useWriteContract()
+  const receipt = useWaitForTransactionReceipt({ hash: execute.data })
+
+  const isError = useMemo(() => {
+    return simulation.isError || execute.isError || receipt.isError
+  }, [simulation, execute, receipt])
+
+  const error = useMemo(() => {
+    return simulation.error || execute.error || receipt.error
+  }, [simulation, execute, receipt])
 
   useEffect(() => {
-    setBusy(isPending)
-  }, [setBusy, isPending])
+    if(simulation.isSuccess) {
+      setBusy(receipt.isLoading)
+    }
+  }, [setBusy, simulation, receipt])
 
   const disableClaim = useMemo(() => {
-    return !(isConnected && users.length && Boolean(simulateClaim.data?.request))
-  }, [isConnected, users, simulateClaim])
+    return !(isConnected && users.length && Boolean(simulation.data?.request))
+  }, [isConnected, users, simulation])
 
   return <main className="relative min-h-screen flex flex-col items-center justify-center">
     <div className={`w-full h-full flex flex-col items-center justify-center p-24 gap-8 ${busy ? 'blur' : ''}`}>
@@ -120,10 +131,10 @@ function Page() {
       <Connect />
       <div className="flex items-center justify-between gap-4">
         <Button onClick={fetchClaims} disabled={Boolean(users.length)}>1 - fetch claims</Button>
-        <Button onClick={() => writeContract(simulateClaim.data!.request)} disabled={disableClaim}>2 - exec claims ({users.length})</Button>
+        <Button onClick={() => execute.writeContract(simulation.data!.request)} disabled={disableClaim}>2 - exec claims ({users.length})</Button>
       </div>
-      {isSuccess && <div className="w-[420px] p-2 border border-green-500 text-green-500 text-sm text-center">Great success!!</div>}
-      {simulateClaim.error && users.length > 0 && <div className="w-[420px] p-2 border border-red-500 text-red-500 text-sm">{simulateClaim.error.message}</div>}
+      {receipt.isSuccess && <div className="w-[420px] p-2 border border-green-500 text-green-500 text-sm text-center">Great success!!</div>}
+      {isError && users.length > 0 && <div className="w-[420px] p-2 border border-red-500 text-red-500 text-sm">{error?.message}</div>}
       <table className="table-auto border-separate border-spacing-4 border border-slate-900">
         <thead>
           <tr>
